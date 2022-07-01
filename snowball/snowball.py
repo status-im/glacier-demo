@@ -26,17 +26,17 @@
 # Preferences
 
 from dataclasses import dataclass
-from typing import Callable, List, Generator, Dict
+from typing import Callable, List, Generator, Dict, Protocol, Tuple
 import random
 from collections import Counter
-from rusty_results import Option
+from rusty_results import Option, Empty, Some
 
 
-class Vote:
+class Vote(Protocol):
     __slots__ = []
 
-    def flip(self):
-        raise NotImplementedError
+    def flip(self) -> "Vote":
+        pass
 
 
 class VoteYes(Vote):
@@ -89,10 +89,15 @@ def update_state(
     else:
         state.consecutive_success = 0
 
+    if state.consecutive_success > config.decision_threshold:
+        state.decision = Some(state.opinion)
 
-def sample(nodes: List[SnowballState]) -> List[Vote]:
+
+def sample(nodes: List[SnowballState]) -> Callable[[int, int], List[Vote]]:
     def _sample(k: int, node_id: int):
-        return [nodes[i].opinion for i in random.sample(list(range(len(nodes))), k+1) if i != node_id][:k]
+        return [
+           nodes[i].opinion for i in random.sample(list(range(len(nodes))), k+1) if i != node_id
+        ][:k]
     return _sample
 
 
@@ -101,7 +106,38 @@ def simulate(nodes: List[SnowballState], config: SnowballConfig, max_ttf: int) -
     sample_query = sample(nodes)
     while not all(node.decision.is_some for node in nodes) and ttf < max_ttf:
         yield Counter(node.opinion for node in nodes)
-        for node_id, node_state in enumerate(nodes):
+        non_decided = (
+            (node_id, node_state) for node_id, node_state in enumerate(nodes) if node_state.decision.is_empty
+        )
+        for node_id, node_state in non_decided:
             update_state(node_id, node_state, config, sample_query)
 
 
+def generate_random_nodes(size: int, weights: Tuple[float, float]) -> List[SnowballState]:
+    return [
+        SnowballState(opinion=opinion, consecutive_success=0, decision=Empty())
+        for opinion in random.choices([VOTE_YES, VOTE_NO], weights=weights, k=size)
+    ]
+
+
+def plot_history(history: List[Dict[Vote, int]]):
+    import seaborn as sbn
+    import matplotlib.pyplot as plt
+    yes, no = zip(*((x[VOTE_YES], x[VOTE_NO]) for x in history))
+    sbn.lineplot(data={"yes": yes, "no": no})
+    plt.show()
+
+
+if __name__ == "__main__":
+    n = 400
+    k = 10
+    alpha = 8
+    beta = 20
+
+    config = SnowballConfig(alpha, k, beta)
+
+    nodes = generate_random_nodes(n, (0.55, 0.45))
+
+    history_states = list(simulate(nodes, config, 100))
+
+    plot_history(history_states)
