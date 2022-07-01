@@ -1,5 +1,6 @@
 from random import sample
 from random import choices
+from random import shuffle
 import matplotlib.pyplot as plt
 import seaborn as sbn
 from collections import Counter
@@ -12,10 +13,10 @@ from collections import Counter
 n = 400
 
 # k (sample size): between 1 and n | bigger the k the faster the conversion
-k = 20
+k = 10
 
 # alpha (quorum size): between 1 and k
-alpha = 14
+alpha = 8
 
 # beta (decision threshold): >= 1
 beta = 20
@@ -23,8 +24,8 @@ beta = 20
 
 # preference := pizza
 # n size list w/ each term n having it's own preference
-node_preference = [choices([True, False], weights=[60, 40])[0] for i in range(n)]
-
+node_preference = [choices([True, False], weights=[0.55, 0.45])[0] for i in range(n)]
+print(Counter(node_preference))
 # success counter for each node
 node_counter = [0 for i in range(n)]
 
@@ -33,7 +34,9 @@ node_decision = [None for i in range(n)]
 x_axis = []
 
 while not all(x is not None for x in node_decision): # returns false if any None exist - truthy, any is falsy
-    for node_index in (i for i, d in enumerate(node_decision) if d is None):
+    indices = [i for i, d in enumerate(node_decision) if d is None]
+    shuffle(indices)
+    for node_index in indices:
         sample_response = sample(node_preference, k)
         print(sample_response)
         previous_preference = node_preference[node_index]
@@ -52,13 +55,12 @@ while not all(x is not None for x in node_decision): # returns false if any None
             node_counter[node_index] = 0
         if node_counter[node_index] > beta:
             node_decision[node_index] = node_preference[node_index]
-    x_axis.append(node_preference.copy()) # read up on append command
-print(node_decision)
+    x_axis.append(Counter(node_preference.copy())) # read up on append command
 
 #plot two lines, one w/ yes and one w/ no
 
-x_axis = list(zip(*[Counter(x) for x in x_axis]))
-sbn.lineplot(data = x_axis)
+yes, no = zip(*((x[True], x[False]) for x in x_axis))
+sbn.lineplot(data={"yes": yes, "no": no})
 plt.show()
 # consecutiveSuccesses := 0
 # while not decided:
