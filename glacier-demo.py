@@ -16,7 +16,7 @@ n = 400
 k = 10
 
 # alpha (quorum size): between 1 and k
-alpha = 8
+alpha = 9
 
 # beta (decision threshold): >= 1
 beta = 20
@@ -36,6 +36,7 @@ x_axis = []
 while not all(x is not None for x in node_decision): # returns false if any None exist - truthy, any is falsy
     indices = [i for i, d in enumerate(node_decision) if d is None]
     shuffle(indices)
+    x_axis.append(Counter(node_preference.copy()))  # read up on append command
     for node_index in indices:
         sample_response = sample(node_preference, k)
         print(sample_response)
@@ -55,7 +56,7 @@ while not all(x is not None for x in node_decision): # returns false if any None
             node_counter[node_index] = 0
         if node_counter[node_index] > beta:
             node_decision[node_index] = node_preference[node_index]
-    x_axis.append(Counter(node_preference.copy())) # read up on append command
+
 
 #plot two lines, one w/ yes and one w/ no
 
