@@ -144,27 +144,27 @@ def plot_animated_heatmap(history: List[List[SnowballState]]):
     fig = plt.figure()
     heat_max = max(node.consecutive_success for node in history[-1])
     print(heat_max)
-    half_heat_max = heat_max//2
 
     def node_state_to_hue_value(node):
-        return 1 if node.preference == VOTE_YES else -1
+        a = min(max(node.consecutive_success/heat_max, 0.25), 1.0)
+        return (0.184, 0.662, 0.976, a) if node.preference == VOTE_YES else (0.949, 0.729, 0.129, a)
 
     def init():
-        data = np.array(
-            [node_state_to_hue_value(node) for node in history[0]]
-        )
-        squared_shape = int(sqrt(len(data)))
-        data = np.reshape(data, (squared_shape, squared_shape))
+        data = [node_state_to_hue_value(node) for node in history[0]]
 
-        sbn.heatmap(data, vmax=1,  vmin=-1, fmt="d", cmap="coolwarm", cbar=True)
+        squared_shape = int(sqrt(len(data)))
+        data = [data[x:x+squared_shape] for x in range(squared_shape)]
+        plt.imshow(data)
+        # sbn.heatmap(data, vmax=1,  vmin=-1, fmt="d", cmap="coolwarm", cbar=True)
 
     def animate(i):
         plt.clf()
-        data = np.array(
-            [node_state_to_hue_value(node) for node in history[i]]
-        )
-        data = np.reshape(data, (-1, int(sqrt(len(data)))))
-        sbn.heatmap(data, vmax=1, vmin=-1, fmt="d", cmap="coolwarm", cbar=True)
+        data = [node_state_to_hue_value(node) for node in history[i]]
+
+        squared_shape = int(sqrt(len(data)))
+        data = [data[x:x+squared_shape] for x in range(squared_shape)]
+        plt.imshow(data)
+        # sbn.heatmap(data, vmax=1, vmin=-1, fmt="d", cmap="coolwarm", cbar=True)
         plt.text(0, 0, f"Round = {i}")
 
     _ = animation.FuncAnimation(
